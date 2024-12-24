@@ -1,0 +1,35 @@
+/* Hide the header and toolbar */
+.header, .toolbar {
+    display: none !important;
+}
+
+/* Hide the sidebar */
+.jp-SideBar {
+    display: none !important;
+}
+
+/* Hide the notebook list */
+.notebook_list {
+    display: none !important;
+}
+
+/* Hide the cell toolbar */
+.cell .input_prompt, .cell .output_prompt {
+    display: none !important;
+}
+
+/* Hide the footer */
+.footer {
+    display: none !important;
+}
+
+/* Adjust margins and padding */
+.container {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Ensure code cells take the full width */
+.cell {
+    width: 100% !important;
+}
