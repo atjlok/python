@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Jupyter Notebook Viewer with Pyodide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/default.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .markdown-cell, .code-cell {
+            // font-size: 18px; - Changed below.
+            margin-bottom: 10px;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .markdown-cell {
+            font-size: 18px;
+            background-color: #000000;
+            color: #ffffff;
+            border: 4px solid #ddd;
+            cursor: pointer;
+        }
+        .code-cell {
+            font-size: 16px;
+            background-color: #ffffff;
+            border: 4px solid #ccc;
+            display: none;
+            cursor: pointer;
+        }
+        .editor-modal, .plot-modal {
+            background-color: #ffffff;
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            padding: 20px;
+            border: 1px solid #ccc;
+            width: 80%;
+            height: 90%;
+            overflow: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .editor-modal #code-editor {
+            width: 100%;
+            font-size: 20px;
+            font-family: monospace;
+            padding: 10px;
+            overflow: auto;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            white-space: pre-wrap;
+        }
+        .hidden { display: none; }
+        .output img { max-width: 100%; }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .button-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #run-code {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #close-editor, #close-plot {
+            background-color: #f44336;
+            color: white;
+        }
+        .output {
+            width: 100%;
+            height: 50%;
+            font-size: 18px;
+            background-color: #ffffff;
+            border: 1px solid #aaa;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 200px;
+            box-sizing: border-box;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 30px;
+            text-align: center;
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;" onkeydown="return disableShortcuts(event);">
+
+<div id="notebook"></div>
+
+<div id="editor-modal" class="editor-modal">
+    <div id="code-editor" contenteditable="true"></div>
+    <div class="button-container">
+        <button id="run-code">Run Code</button>
+        <button id="close-editor">Close Editor</button>
+    </div>
+    <div id="output" class="output"></div>
+</div>
+
+<div id="plot-modal" class="plot-modal">
+    <button class="close-button" id="close-plot">×</button>
+    <img id="plot-image" src="" alt="Plot Image">
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js"></script>
+<script>
+    let scrollPosition = 0;
+    let pyodide;
+    let outputDiv; // Define outputDiv at a higher scope
+
+    async function main() {
+        console.log('Starting main function...');
+        try {
+            const notebookUrl = 'https://raw.githubusercontent.com/atjlok/python/main/git-comprehension.ipynb';
+            const response = await fetch(notebookUrl);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch notebook: ${response.statusText}`);
+            }
+
+            const notebook = await response.json();
+            console.log('Notebook fetched successfully:', notebook);
+            const notebookContainer = document.getElementById('notebook');
+
+            notebook.cells.forEach((cell, index) => {
+                if (cell.cell_type === 'markdown') {
+                    const markdownElement = document.createElement('div');
+                    markdownElement.className = 'markdown-cell';
+                    markdownElement.innerHTML = marked.parse(cell.source.join(''));
+                    markdownElement.addEventListener('click', () => toggleCodeCells(markdownElement));
+                    notebookContainer.appendChild(markdownElement);
+                } else if (cell.cell_type === 'code') {
+                    const codeElement = document.createElement('div');
+                    const codeContent = cell.source.join('');
+                    codeElement.className = 'code-cell';
+                    codeElement.innerHTML = `<pre><code>${hljs.highlightAuto(codeContent).value}</code></pre>`;
+                    codeElement.addEventListener('click', () => openEditor(codeContent));
+                    notebookContainer.appendChild(codeElement);
+                }
+            });
+
+            pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.1/full/"
+            });
+            console.log('Pyodide loaded successfully:', pyodide);
+            await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scipy']);
+
+            document.getElementById('run-code').addEventListener('click', async () => {
+                const code = document.getElementById('code-editor').innerText;
+                outputDiv = document.getElementById('output'); // Ensure outputDiv is correctly assigned
+                const plotImage = document.getElementById('plot-image');
+                outputDiv.innerHTML = ''; // Clear previous output
+                plotImage.src = ''; // Clear previous plot image
+                document.getElementById('plot-modal').style.display = 'none'; // Ensure plot modal is hidden
+
+                function handleInput(promptText) {
+                    const userInput = window.prompt(promptText, "");
+                    outputDiv.innerHTML += `<pre>${promptText} ${userInput}</pre>`; // Display input in the output div
+                    return userInput;
+                }
+
+                try {
+                    pyodide.runPython(`
+                        import sys
+                        import io
+                        import warnings
+                        warnings.filterwarnings("ignore")
+                        sys.stdout = io.StringIO()
+                        sys.stderr = io.StringIO()
+                    `);
+
+                    await pyodide.runPythonAsync(`
+                        import matplotlib
+                        matplotlib.use('Agg')
+                    `);
+
+                    pyodide.globals.set("input", handleInput);
+
+                    await pyodide.runPythonAsync(`
+                        import builtins
+                        builtins.input = input
+                    `);
+
+                    await pyodide.runPythonAsync(code);
+
+                    const stdout = pyodide.runPython('sys.stdout.getvalue()');
+                    const stderr = pyodide.runPython('sys.stderr.getvalue()');
+
+                    // Display plot only if the code contains 'import matplotlib'
+                    if (code.includes('import matplotlib')) {
+                        const plotCode = `
+                            import matplotlib.pyplot as plt
+                            import base64
+                            from io import BytesIO
+
+                            buffer = BytesIO()
+                            plt.savefig(buffer, format='png')
+                            buffer.seek(0)
+                            img_str = base64.b64encode(buffer.read()).decode()
+                            img_str
+                        `;
+                        const img_str = await pyodide.runPythonAsync(plotCode);
+                        if (img_str) {
+                            plotImage.src = 'data:image/png;base64,' + img_str;
+                            document.getElementById('plot-modal').style.display = 'block';
+                        }
+                    }
+
+                    outputDiv.innerHTML += `<pre>${escapeHtml(stdout + stderr)}</pre>`;
+                } catch (error) {
+                    outputDiv.innerHTML += `<pre class="error">${escapeHtml(error.toString())}</pre>`;
+                }
+            });
+
+            document.getElementById('close-editor').addEventListener('click', () => {
+                document.getElementById('editor-modal').style.display = 'none';
+                document.getElementById('output').innerHTML = '';
+                document.getElementById('plot-image').src = ''; // Clear the plot image
+                document.querySelectorAll('body > :not(#editor-modal)').forEach(el => el.classList.remove('hidden'));
+                window.scrollTo(0, scrollPosition);
+            });
+
+            document.getElementById('close-plot').addEventListener('click', () => {
+                document.getElementById('plot-modal').style.display = 'none';
+                document.getElementById('plot-image').src = ''; // Clear the plot image
+            });
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while loading the notebook.');
+        }
+        console.log('Main function finished.');
+    }
+
+    function toggleCodeCells(markdownElement) {
+        let nextElement = markdownElement.nextElementSibling;
+        while (nextElement && !nextElement.classList.contains('markdown-cell')) {
+            if (nextElement.classList.contains('code-cell')) {
+                nextElement.style.display = nextElement.style.display === 'none' ? 'block' : 'none';
+            }
+            nextElement = nextElement.nextElementSibling;
+        }
+    }
+
+    function openEditor(code) {
+        scrollPosition = window.scrollY;
+        const editorDiv = document.getElementById('code-editor');
+        editorDiv.innerHTML = `<pre><code>${hljs.highlightAuto(code).value}</code></pre>`; // Set the code with syntax highlighting in the editor
+
+        // Adjust the height of the code editor based on the content
+        editorDiv.style.height = 'auto'; // Reset height to auto
+        setTimeout(() => {
+            editorDiv.style.height = editorDiv.scrollHeight + 'px'; // Set height based on scrollHeight after rendering
+        }, 0);
+
+        document.querySelectorAll('body > :not(#editor-modal)').forEach(el => el.classList.add('hidden'));
+        document.getElementById('editor-modal').style.display = 'block';
+    }
+
+    function disableShortcuts(event) {
+        const prohibitedKeys = ['c', 'v', 'x', 'a', 's', 'F12', 'I'];
+        if (event.ctrlKey && prohibitedKeys.includes(event.key)) {
+            event.preventDefault();
+        }
+        if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) {
+            event.preventDefault();
+        }
+        return true;
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    main();
+</script>
+
+</body>
+</html>
