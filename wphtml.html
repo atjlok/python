@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample HTML</title>
+    <script type="text/javascript">
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // Disable shortcuts (Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+X, F12)
+            if ((e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'u' || e.key === 'x')) || e.key === 'F12') {
+                e.preventDefault();
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Sample HTML Content</h1>
+    <p>This is a sample HTML file content.</p>
+</body>
+</html>
