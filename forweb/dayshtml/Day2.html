@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Jupyter Notebook Viewer with Pyodide</title>
+    <script type="text/javascript">
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            // Disable shortcuts (Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+X, F12)
+            if ((e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'u' || e.key === 'x')) || e.key === 'F12') {
+                e.preventDefault();
+            }
+        });
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/default.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .markdown-cell, .code-cell {
+            font-size: 18px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            padding: 15px;
+        }
+        .markdown-cell {
+            background-color: #000000;
+            color: #ffffff;
+            border: 4px solid #ddd;
+        }
+        .code-cell {
+            background-color: #ffffff;
+            border: 4px solid #ccc;
+            cursor: pointer;
+        }
+        .editor-modal, .plot-modal { 
+            background-color: #ffffff;
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            z-index: 1000; 
+            padding: 20px; 
+            border: 1px solid #ccc; 
+            width: 80%; 
+            height: 90%;
+            overflow: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .editor-modal #code-editor {
+            width: 100%;
+            font-size: 20px; /* Adjust font size if needed */
+            font-family: monospace;
+            padding: 10px;
+            overflow: auto;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            white-space: pre-wrap; /* Handle line breaks properly */
+        }
+
+        .hidden { display: none; }
+        .output img { max-width: 100%; }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+        .button-container button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        #run-code {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #close-editor, #close-plot {
+            background-color: #f44336;
+            color: white;
+        }
+        .output {
+            width: 100%;
+            height: 50%;
+            font-size: 18px;
+            background-color: #ffffff;
+            border: 1px solid #aaa;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 200px;
+            box-sizing: border-box;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 30px;
+            text-align: center;
+            z-index: 1001;
+        }
+        .input-modal {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .input-modal label {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .input-modal input {
+            font-size: 18px;
+            padding: 10px;
+            margin-bottom: 10px;
+            width: 300px;
+        }
+        .input-modal button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;" onkeydown="return disableShortcuts(event);">
+
+<div id="notebook"></div>
+
+<div id="editor-modal" class="editor-modal">
+    <!-- Update textarea to a div for proper syntax highlighting -->
+    <div id="code-editor" contenteditable="true"></div>
+    <div class="button-container">
+        <button id="run-code">Run Code</button>
+        <button id="close-editor">Close Editor</button>
+    </div>
+    <div id="input-modal" class="input-modal">
+        <label id="input-prompt" for="user-input"></label>
+        <input type="text" id="user-input" placeholder="Enter your input">
+        <button id="submit-input">Submit</button>
+    </div>
+    <div id="output" class="output"></div>
+</div>
+
+<div id="plot-modal" class="plot-modal">
+    <button class="close-button" id="close-plot">×</button>
+    <img id="plot-image" src="" alt="Plot Image">
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js"></script>
+<script>
+    let scrollPosition = 0;
+    let pyodide;
+    let resolveInputPromise;
+
+    async function main() {
+        console.log('Starting main function...');
+        try {
+            const notebookUrl = 'https://raw.githubusercontent.com/atjlok/python/main/forweb/Day2.ipynb';
+            const response = await fetch(notebookUrl);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch notebook: ${response.statusText}`);
+            }
+
+            const notebook = await response.json();
+            console.log('Notebook fetched successfully:', notebook);
+            const notebookContainer = document.getElementById('notebook');
+
+            notebook.cells.forEach(cell => {
+                let cellElement = document.createElement('div');
+                if (cell.cell_type === 'markdown') {
+                    cellElement.className = 'markdown-cell';
+                    cellElement.innerHTML = marked.parse(cell.source.join(''));
+                } else if (cell.cell_type === 'code') {
+                    let codeContent = cell.source.join('');
+                    cellElement.className = 'code-cell';
+                    cellElement.innerHTML = `<pre><code>${hljs.highlightAuto(codeContent).value}</code></pre>`;
+                    cellElement.addEventListener('click', () => openEditor(codeContent));
+                }
+                notebookContainer.appendChild(cellElement);
+            });
+
+            pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.1/full/" });
+            console.log('Pyodide loaded successfully:', pyodide);
+            await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scipy']);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while loading the notebook.');
+        }
+        console.log('Main function finished.');
+    }
+
+    document.getElementById('run-code').addEventListener('click', async () => {
+        const code = document.getElementById('code-editor').innerText;
+        const outputDiv = document.getElementById('output');
+        const plotImage = document.getElementById('plot-image');
+        const inputModal = document.getElementById('input-modal');
+        const userInputField = document.getElementById('user-input');
+        const inputPromptLabel = document.getElementById('input-prompt');
+        outputDiv.innerHTML = ''; // Clear previous output
+        userInputField.value = ''; // Clear previous input
+        plotImage.src = ''; // Clear previous plot image
+        document.getElementById('plot-modal').style.display = 'none'; // Ensure plot modal is hidden
+
+        const inputRegex = /input\(["'](.*?)["']\)/;
+
+        if (inputRegex.test(code)) {
+            const promptText = code.match(inputRegex)[1];
+            inputPromptLabel.textContent = promptText;
+            inputModal.style.display = 'flex';
+
+            document.getElementById('submit-input').addEventListener('click', async () => {
+                const userInput = userInputField.value;
+                inputModal.style.display = 'none';
+
+                // Modify the code to replace input() with the user input
+                const modifiedCode = code.replace(inputRegex, `"${userInput}"`);
+
+                await runPythonCode(pyodide, modifiedCode, outputDiv, plotImage);
+            }, { once: true });
+        } else {
+            await runPythonCode(pyodide, code, outputDiv, plotImage);
+        }
+    });
+
+    async function runPythonCode(pyodide, code, outputDiv, plotImage) {
+        pyodide.runPython(`
+import sys
+import io
+import warnings
+warnings.filterwarnings("ignore")
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+        `);
+
+        try {
+            await pyodide.runPythonAsync(`
+import matplotlib
+matplotlib.use('Agg')
+            `);
+
+            pyodide.runPython(code);
+            const stdout = pyodide.runPython('sys.stdout.getvalue()');
+            const stderr = pyodide.runPython('sys.stderr.getvalue()');
+
+            // Display plot only if the code contains 'import matplotlib'
+            if (code.includes('import matplotlib')) {
+                const plotCode = `
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+
+buffer = BytesIO()
+plt.savefig(buffer, format='png')
+buffer.seek(0)
+img_str = base64.b64encode(buffer.read()).decode()
+img_str
+                `;
+                const img_str = await pyodide.runPythonAsync(plotCode);
+
+                if (img_str) {
+                    plotImage.src = 'data:image/png;base64,' + img_str;
+                    document.getElementById('plot-modal').style.display = 'block';
+                }
+            }
+
+            // Display standard output and error messages
+            outputDiv.innerHTML += `<pre>${escapeHtml(stdout + stderr)}</pre>`;
+        } catch (error) {
+            console.error(`Error executing Python code: ${error}`);
+            outputDiv.innerHTML += `<pre class="error">${escapeHtml(error.toString())}</pre>`;
+        }
+    }
+
+    document.getElementById('close-editor').addEventListener('click', () => {
+        document.getElementById('editor-modal').style.display = 'none';
+        document.getElementById('output').innerHTML = '';
+        document.getElementById('plot-image').src = ''; // Clear the plot image
+        document.querySelectorAll('body > :not(#editor-modal)').forEach(el => el.classList.remove('hidden'));
+        window.scrollTo(0, scrollPosition);
+    });
+
+    document.getElementById('close-plot').addEventListener('click', () => {
+        document.getElementById('plot-modal').style.display = 'none';
+        document.getElementById('plot-image').src = ''; // Clear the plot image
+    });
+
+    function openEditor(code) {
+        scrollPosition = window.scrollY;
+        const editorDiv = document.getElementById('code-editor');
+        editorDiv.innerHTML = `<pre><code>${hljs.highlightAuto(code).value}</code></pre>`; // Syntax highlighting applied
+
+        // Adjust the height of the code editor based on the content
+        editorDiv.style.height = 'auto'; // Reset height to auto
+        setTimeout(() => {
+            editorDiv.style.height = editorDiv.scrollHeight + 'px'; // Set height based on scrollHeight after rendering
+        }, 0);
+
+        document.querySelectorAll('body > :not(#editor-modal)').forEach(el => el.classList.add('hidden'));
+        document.getElementById('editor-modal').style.display = 'block';
+    }
+
+    function disableShortcuts(event) {
+        const prohibitedKeys = ['c','v','u','m','x', 'a', 's', 'F12', 'I'];
+        if (event.ctrlKey && prohibitedKeys.includes(event.key)) {
+            event.preventDefault();
+        }
+        if (event.key === 'F12' || (event.ctrlKey && event.shiftKey && event.key === 'I')) {
+            event.preventDefault();
+        }
+        return true;
+    }
+
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    main();
+</script>
+
+</body>
+</html>
