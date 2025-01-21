@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Column Fullscreen Layout</title>
+    <style>
+        /* Resetting default styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Body and root styles */
+        html, body {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Two-column container */
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Left column styles */
+        .left-column {
+            flex: 1;
+            background-image: url('https://via.placeholder.com/600'); /* Replace with your image URL */
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* Right column styles */
+        .right-column {
+            flex: 1;
+            background-color: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Table styles */
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            text-align: center;
+            font-family: Arial, sans-serif;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        td {
+            background-color: #fefefe;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left column with image -->
+        <div class="left-column"></div>
+
+        <!-- Right column with table -->
+        <div class="right-column">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Header 1</th>
+                        <th>Header 2</th>
+                        <th>Header 3</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Row 1, Col 1</td>
+                        <td>Row 1, Col 2</td>
+                        <td>Row 1, Col 3</td>
+                    </tr>
+                    <tr>
+                        <td>Row 2, Col 1</td>
+                        <td>Row 2, Col 2</td>
+                        <td>Row 2, Col 3</td>
+                    </tr>
+                    <tr>
+                        <td>Row 3, Col 1</td>
+                        <td>Row 3, Col 2</td>
+                        <td>Row 3, Col 3</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
