@@ -4,6 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PCEP Exam Self-Preparation</title>
+    <script>
+        // Disable right-click context menu
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        });
+
+        // Disable shortcut keys for Copy, Cut, Paste, F12, and View Page Source
+        document.addEventListener('keydown', function (e) {
+            // Disable Ctrl + C, Ctrl + X, Ctrl + V
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'v')) {
+                e.preventDefault();
+            }
+
+            // Disable F12 (for developer tools)
+            if (e.key === 'F12') {
+                e.preventDefault();
+            }
+
+            // Disable Ctrl + U (View Page Source)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+                e.preventDefault();
+            }
+        });
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -103,29 +127,6 @@
             </div>
         </div>
     </div>
-    <script>
-        // Disable right-click context menu
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        });
-
-        // Disable shortcut keys for Copy, Cut, Paste, F12, and View Page Source
-        document.addEventListener('keydown', function (e) {
-            // Disable Ctrl + C, Ctrl + X, Ctrl + V
-            if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'v')) {
-                e.preventDefault();
-            }
-
-            // Disable F12 (for developer tools)
-            if (e.key === 'F12') {
-                e.preventDefault();
-            }
-
-            // Disable Ctrl + U (View Page Source)
-            if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
-                e.preventDefault();
-            }
-        });
-    </script>
+     
 </body>
 </html>
