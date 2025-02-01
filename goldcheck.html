@@ -5,16 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sample HTML</title>
      <script type="text/javascript">
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-        });
-
-        document.addEventListener('keydown', function(e) {
-            // Disable shortcuts (Ctrl+C, Ctrl+V, Ctrl+U, Ctrl+X, F12)
-            if ((e.ctrlKey && (e.key === 'u' || e.key === 'x')) || e.key === 'F12') {
+        // Function to disable unwanted shortcuts
+        function disableShortcuts(e) {
+            const allowedKeys = ['c', 'v'];
+            if (e.ctrlKey && !allowedKeys.includes(e.key.toLowerCase()) || e.key === 'F12') {
                 e.preventDefault();
             }
-        });
+        }
+
+        // Function to disable context menu
+        function disableContextMenu(e) {
+            e.preventDefault();
+        }
+
+        // Function to apply event listeners to a document (main document or iframe document)
+        function applyEventListeners(element) {
+            element.addEventListener('contextmenu', disableContextMenu);
+            element.addEventListener('keydown', disableShortcuts);
+        }
     </script>
     </head>
     <body>
