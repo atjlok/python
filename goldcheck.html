@@ -4,26 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sample HTML</title>
-     <script type="text/javascript">
-        // Function to disable unwanted shortcuts
-        function disableShortcuts(e) {
-            const allowedKeys = ['c', 'v'];
-            if (e.ctrlKey && !allowedKeys.includes(e.key.toLowerCase()) || e.key === 'F12') {
-                e.preventDefault();
-            }
-        }
-
-        // Function to disable context menu
-        function disableContextMenu(e) {
-            e.preventDefault();
-        }
-
-        // Function to apply event listeners to a document (main document or iframe document)
-        function applyEventListeners(element) {
-            element.addEventListener('contextmenu', disableContextMenu);
-            element.addEventListener('keydown', disableShortcuts);
-        }
-    </script>
+     
     </head>
     <body>
     <h1>Sample HTML Content</h1>
@@ -75,5 +56,26 @@
      <p>This is a sample HTML file content.</p>
      <p>This is a sample HTML file content.</p>
      <p>This is a sample HTML file content.</p>
+
+        <script type="text/javascript">
+        // Function to disable unwanted shortcuts
+        function disableShortcuts(e) {
+            const allowedKeys = ['c', 'v'];
+            if (e.ctrlKey && !allowedKeys.includes(e.key.toLowerCase()) || e.key === 'F12') {
+                e.preventDefault();
+            }
+        }
+
+        // Function to disable context menu
+        function disableContextMenu(e) {
+            e.preventDefault();
+        }
+
+        // Function to apply event listeners to a document (main document or iframe document)
+        function applyEventListeners(element) {
+            element.addEventListener('contextmenu', disableContextMenu);
+            element.addEventListener('keydown', disableShortcuts);
+        }
+    </script>
 </body>
 </html>
