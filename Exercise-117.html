@@ -9103,42 +9103,33 @@ Python is the future
         });
     });
     </script>
-    <script>
-// Disable Right-Click
-document.addEventListener("contextmenu", e => e.preventDefault(), false);
+   <script>
+        // Disable Right-Click
+        document.addEventListener("contextmenu", e => e.preventDefault(), false);
 
-// Disable Key Combinations Except Ctrl + C and Ctrl + V
-document.addEventListener("keydown", e => {
-    if (
-        (e.ctrlKey && e.key !== "c" && e.key !== "v") || // Block all Ctrl+Key except C and V
-        e.keyCode === 123 || // Block F12
-        e.keyCode === 73 || // Block Ctrl + Shift + I (Inspect)
-        e.keyCode === 74 || // Block Ctrl + Shift + J (Console)
-        e.keyCode === 85 // Block Ctrl + U (View Source)
-    ) {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-});
+        // Disable Key Combinations Except Ctrl + C and Ctrl + V
+        document.addEventListener("keydown", e => {
+            if (
+                (e.ctrlKey && e.key !== "c" && e.key !== "v") || // Block all Ctrl+Key except C and V
+                e.keyCode === 123 || // Block F12
+                e.keyCode === 73 || // Block Ctrl + Shift + I (Inspect)
+                e.keyCode === 74 || // Block Ctrl + Shift + J (Console)
+                e.keyCode === 85 // Block Ctrl + U (View Source)
+            ) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
 
-// Prevent Text Selection (But Allow Ctrl + C)
-document.addEventListener("selectstart", e => {
-    if (!e.ctrlKey) { // Allow selection only if Ctrl is pressed
-        e.preventDefault();
-    }
-}, false);
+        // Prevent Text Selection (But Allow Ctrl + C)
+        document.addEventListener("selectstart", e => {
+            if (!e.ctrlKey) { // Allow selection only if Ctrl is pressed for Copying
+                e.preventDefault();
+            }
+        }, false);
 
-// Prevent Dragging of Text and Images
-document.addEventListener("dragstart", e => e.preventDefault(), false);
-
-// Detect DevTools and Redirect to Blank Page
-setInterval(() => {
-    let devtools = /./;
-    devtools.toString = function() {
-        window.location.href = "about:blank"; // Redirect if DevTools is open
-    };
-    console.log("%c", devtools);
-}, 1000);
-</script>
+        // Prevent Dragging of Text and Images
+        document.addEventListener("dragstart", e => e.preventDefault(), false);
+    </script>
     </body>
 </html>
