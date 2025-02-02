@@ -9121,9 +9121,9 @@ document.addEventListener("keydown", e => {
     }
 });
 
-// Prevent Text Selection (But Allow Ctrl + C)
+// Prevent Text Selection Except Inside the CodeMirror Editor
 document.addEventListener("selectstart", e => {
-    if (!e.ctrlKey && !e.target.closest('pre, code')) { // Allow selection inside <pre> and <code>
+    if (!e.ctrlKey && !e.target.closest('#editor')) { // Allow selection inside the CodeMirror editor
         e.preventDefault();
     }
 }, false);
