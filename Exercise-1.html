@@ -4,6 +4,19 @@
 <head><meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Exercise-1</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<script>
+        document.addEventListener("contextmenu", e => e.preventDefault(), false);
+
+    document.addEventListener("keydown", e => {
+    // DISABLE CONTROL AND ALL FUNCTION KEYS
+    //(e.ctrlKey || (e.keyCode>=112 && e.keyCode<=123)) {
+    // DISABLE CONTROL AND F12
+    if (e.ctrlKey || e.keyCode==123) {
+    e.stopPropagation();
+    e.preventDefault();
+    }
+    });
+    </script>
 <style type="text/css">
     pre { line-height: 125%; }
 td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
