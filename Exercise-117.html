@@ -9103,50 +9103,5 @@ Python is the future
         });
     });
     </script>
-   <script>
-// Disable Right-Click
-document.addEventListener("contextmenu", e => e.preventDefault(), false);
-
-// Disable Key Combinations Except Ctrl + C and Ctrl + V
-document.addEventListener("keydown", e => {
-    if (
-        (e.ctrlKey && e.key !== "c" && e.key !== "v") || // Block all Ctrl+Key except C and V
-        e.keyCode === 123 || // Block F12
-        e.keyCode === 73 || // Block Ctrl + Shift + I (Inspect)
-        e.keyCode === 74 || // Block Ctrl + Shift + J (Console)
-        e.keyCode === 85 // Block Ctrl + U (View Source)
-    ) {
-        e.stopPropagation();
-        e.preventDefault();
-    }
-});
-
-// Prevent Text Selection Except Inside the CodeMirror Editor
-document.addEventListener("selectstart", e => {
-    if (!e.ctrlKey && !e.target.closest('#editor')) { // Allow selection inside the CodeMirror editor
-        e.preventDefault();
-    }
-}, false);
-
-// Prevent Dragging of Text and Images
-document.addEventListener("dragstart", e => e.preventDefault(), false);
-
-// Make sure clipboard copy works on button click
-document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".copy-btn").forEach((btn) => {
-        btn.addEventListener("click", function () {
-            let code = this.closest('.highlight').querySelector('pre').innerText;  // Get code text from <pre> inside the code block
-            
-            // Try copying the text directly, overriding preventDefault behavior for this action
-            navigator.clipboard.writeText(code).then(() => {
-                this.innerText = "Copied!";
-                setTimeout(() => this.innerText = "Copy", 2000);
-            }).catch((err) => {
-                console.error("Error copying text: ", err);
-            });
-        });
-    });
-});
-</script>
     </body>
 </html>
