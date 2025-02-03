@@ -1,0 +1,323 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook Viewer and Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/codemirror.min.css">
+    <script>
+        // Disable right-click
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        });
+
+        // Disable Ctrl+U and F12
+        document.addEventListener("keydown", function (event) {
+            if (event.ctrlKey && event.key === "u") {
+                event.preventDefault();
+            }
+            if (event.key === "F12") {
+                event.preventDefault();
+            }
+        });
+    </script>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        .column {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .left-column {
+            border-right: 1px solid #ccc;
+        }
+        #notebook-select {
+            width: calc(100% - 100px);
+            padding: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            display: inline-block;
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #load-button {
+            width: 80px;
+            padding: 12px;
+            margin-left: 10px;
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .jp-Cell {
+            margin: 20px 0;
+        }
+        .jp-CodeCell {
+            background-color: #deffbc;
+            padding: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .jp-CodeCell:hover {
+            background-color: #e9e9e9;
+        }
+        .jp-CodeCell pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+        .jp-CodeCell code {
+            font-family: 'Courier New', Courier, monospace;
+            
+        }
+        .jp-MarkdownCell {
+            padding: 10px;
+            white-space: pre-wrap;
+            
+        }
+        .editor-area, .output-area {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+            overflow: auto;
+            resize: vertical;
+        }
+        #editor {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow: auto;
+            font-size: 16px;
+        }
+        .buttons {
+            margin: 10px 0;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #output {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px ;
+            white-space: pre-wrap;
+            overflow: auto;
+            font-size: 16px;
+            min-height: 75px; /* Ensures it doesn't shrink below this height */
+        }
+
+        #plot-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+            padding: 20px;
+        }
+        #plot-popup img {
+            max-width: 100%;
+        }
+        #close-popup {
+            display: block;
+            margin: 10px auto 0;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .CodeMirror {
+            font-size: 16px;
+            height: 400px;
+        }
+        .hljs {
+            background: transparent;
+            padding: 0;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.21.3/full/pyodide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.1/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
+
+</head>
+<body>
+    <div class="column left-column">
+    <h2>Choose - Topic </h2>
+        <div>
+            <select id="notebook-select">
+                <option value="https://atjlok.github.io/python/Exercise-1.ipynb">Exercise 1</option>
+                <option value="https://atjlok.github.io/python/pcap-1.ipynb">Exercise 2</option>
+                <option value="https://atjlok.github.io/python/Print-Print.ipynb">Exercise 3</option>
+            </select>
+            <button id="load-button">Load</button>
+        </div>
+        <div id="notebook-content"></div>
+    </div>
+    <div class="column">
+        <div class="editor-area">
+            <h2>Click-code & Simpli-"py"</h2>
+            <textarea id="editor" placeholder="Write your Python code here"></textarea>
+            <div class="buttons">
+                <button class="button" onclick="runCode()">Run Code</button>
+                <button class="button" onclick="clearEditor()">Clear Editor</button>
+            </div>
+        </div>
+        <div class="output-area">
+            <h3>Output</h3>
+            <div id="output"></div>
+        </div>
+        <div id="plot-popup">
+            <img id="plot-image" src="" alt="Plot">
+            <button id="close-popup" onclick="closePopup()">Close</button>
+        </div>
+    </div>
+
+    <script>
+        let pyodideReadyPromise;
+        let editor;
+
+        async function loadPyodideAndPackages() {
+            self.pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.21.3/full/"
+            });
+            await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scipy']);
+            return pyodide;
+        }
+
+        pyodideReadyPromise = loadPyodideAndPackages();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+                mode: 'python',
+                lineNumbers: true,
+                theme: 'default',
+                fontSize: '16px'
+            });
+
+            editor.getWrapperElement().style.fontSize = '16px';
+            document.getElementById('load-button').addEventListener('click', loadNotebook);
+        });
+
+        async function loadNotebook() {
+            const url = document.getElementById('notebook-select').value;
+            try {
+                const response = await fetch(url);
+                const notebookJson = await response.json();
+                const notebookHtml = convertNotebookToHtml(notebookJson);
+                document.getElementById('notebook-content').innerHTML = notebookHtml;
+                
+                // Apply syntax highlighting to all code blocks
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // Add click handlers to code cells
+                document.querySelectorAll('.jp-CodeCell').forEach((cell) => {
+                    cell.addEventListener('click', () => {
+                        const code = cell.querySelector('code').textContent;
+                        editor.setValue(code);
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading notebook:', error);
+            }
+        }
+
+        function convertNotebookToHtml(notebookJson) {
+            const cells = notebookJson.cells;
+            let htmlContent = '';
+
+            cells.forEach(cell => {
+                if (cell.cell_type === 'markdown') {
+                    const converter = new showdown.Converter();
+                    const html = converter.makeHtml(cell.source.join(''));
+                    htmlContent += `<div class="jp-Cell jp-MarkdownCell">${html}</div>`;
+                } else if (cell.cell_type === 'code') {
+                    const code = cell.source.join('');
+                    const highlightedCode = `<pre><code class="python">${code}</code></pre>`;
+                    htmlContent += `<div class="jp-Cell jp-CodeCell">${highlightedCode}</div>`;
+                }
+            });
+
+            return htmlContent;
+        }
+
+        async function runCode() {
+            const editorContent = editor.getValue();
+            const shouldShowPlot = editorContent.includes('plt.show()');
+
+            try {
+                const pyodide = await pyodideReadyPromise;
+
+                pyodide.runPython(`
+import io, sys
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+                `);
+                const result = await pyodide.runPythonAsync(editorContent);
+                const output = pyodide.runPython('sys.stdout.getvalue()');
+                document.getElementById('output').textContent = output + (result ? result : '');
+
+                pyodide.runPython('sys.stdout = sys.__stdout__');
+                pyodide.runPython('sys.stderr = sys.__stderr__');
+
+                if (shouldShowPlot) {
+                    const plotImg = pyodide.runPython(`
+import matplotlib.pyplot as plt
+import io
+import base64
+
+def show_plot():
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.clf()
+    return img_str if plt.get_fignums() else ""
+
+show_plot()
+                    `);
+                    if (plotImg) {
+                        showPlotPopup('data:image/png;base64,' + plotImg);
+                    }
+                }
+            } catch (error) {
+                document.getElementById('output').textContent = error;
+            }
+        }
+
+        function clearEditor() {
+            editor.setValue('');
+            document.getElementById('output').textContent = '';
+        }
+
+        function showPlotPopup(imageSrc) {
+            if (imageSrc) {
+                document.getElementById('plot-image').src = imageSrc;
+                document.getElementById('plot-popup').style.display = 'block';
+            }
+        }
+
+        function closePopup() {
+            document.getElementById('plot-popup').style.display = 'none';
+        }
+    </script>
+
+</body>
+</html>
