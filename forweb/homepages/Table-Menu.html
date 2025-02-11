@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simpli-py & Save Time</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(to right, #243949, #517fa4);
+        }
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .header-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .logo {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            object-fit: cover;
+        }
+        .logo-text {
+            font-weight: 600;
+            color: #1A1F2C;
+        }
+        .hero-logo {
+            width: 10rem; /* Adjust size as needed */
+            height: 10rem; /* Adjust size as needed */
+            border-radius: 9999px; /* Make it circular */
+            margin: 0 auto 1rem; /* Center horizontally and add space below */
+            display: block; /* Ensure it's a block element for centering */
+            }
+      
+        main {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 6rem 1rem 3rem;
+        }
+        .hero {
+            text-align: center;
+            padding: 1rem 0;
+        }
+        .hero h1 {
+            font-size: 3.75rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 1.5rem;
+        }
+        .hero p {
+            font-size: 1.75rem;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 42rem;
+            margin: 0 auto;
+        }
+        .sets-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns for the buttons */
+            gap: 1.5rem;
+            max-width: 64rem;
+            margin: 3rem auto 0;
+            place-items: center;
+        }
+
+        @media (min-width: 768px) {
+            .sets-grid {
+                grid-template-columns: repeat(3, 1fr); /* Ensure 3 columns on larger screens */
+            }
+            .hero h1 {
+                font-size: 4.5rem;
+            }
+        }
+        .set-card {
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+            animation: fadeIn 0.5s ease-in-out;
+            text-align: center;
+        }
+        .set-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .set-button {
+            display: inline-block;
+            padding: 15px 30px;
+            font-size: 1.5rem; /* Bigger font size */
+            font-weight: bold; /* Make font bold */
+            color: white; /* White font color */
+            background-color: red; /* Red background */
+            border: none;
+            border-radius: 0.5rem;
+            text-decoration: none; /* Remove underline from the link */
+            transition: background-color 0.3s;
+        }
+        .set-button:hover {
+            background-color: darkred; /* Darken background on hover */
+        }
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    
+    <header class="header">
+        <div class="header-container">
+            <div class="logo-container">
+                <img 
+                    src="https://professorspoint.in/wp-content/uploads/2025/01/Simpli-PY.png" 
+                    alt="PCEP Logo" 
+                    class="logo"
+                />
+                <span class="logo-text">Simpli-'py'</span>
+            </div>
+        </div>
+    </header>
+   
+    <main>
+        <div class="hero">
+            <img 
+            src="https://professorspoint.in/wp-content/uploads/2025/01/Simpli-PY.png" 
+            alt="PCEP Logo" 
+            class="hero-logo"
+            />
+            <h1>Simpli-'py' & Save Time</h1>
+            <p>Master Python programming with <br> -- comprehensive -- <br> PCEP exam preparation sets ...</p>
+        </div>
+        <div class="sets-grid">
+            <!-- Button 1 -->
+            <div class="set-card">
+                <a href="page1.html" class="set-button">PCEP - Set 1</a>
+            </div>
+            <!-- Button 2 -->
+            <div class="set-card">
+                <a href="page2.html" class="set-button">PCEP - Set 2</a>
+            </div>
+            <!-- Button 3 -->
+            <div class="set-card">
+                <a href="page3.html" class="set-button">PCEP - 15'Days'</a>
+            </div>
+        </div>
+
+    </main>
+   
+</body>
+</html>
