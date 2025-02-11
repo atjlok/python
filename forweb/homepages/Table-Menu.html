@@ -4,6 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simpli-py & Save Time</title>
+    <script>
+    document.addEventListener("contextmenu", function (event) {
+    event.preventDefault();
+    });
+
+    document.addEventListener("keydown", function (event) {
+    if (event.ctrlKey && event.key === "u") {
+       event.preventDefault();
+            }
+    if (event.key === "F12") {
+        event.preventDefault();
+           }
+        });
+   </script>
+
+document.addEventListener("DOMContentLoaded", function() {
+    let iframe = document.getElementById("fullscreen-iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "0";
+    iframe.style.left = "0";
+    iframe.style.width = "100vw";
+    iframe.style.height = "100vh";
+});
     <style>
         * {
             margin: 0;
