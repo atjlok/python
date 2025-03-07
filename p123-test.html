@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notebook Viewer and Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/github.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/codemirror.min.css">
+    <script>
+        // Disable right-click
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        });
+
+        // Disable Ctrl+U and F12
+        document.addEventListener("keydown", function (event) {
+            if (event.ctrlKey && event.key === "u") {
+                event.preventDefault();
+            }
+           
+        });
+
+        // Fetch data files from the dataset repository
+        async function fetchDataFiles() {
+            const datasetRepoUrl = 'https://raw.githubusercontent.com/atjlok/ML/9202b0436e175eefdef77eda99820eae7976bb94/datasets/';
+            const dataFiles = ['wine.data.csv'];  // Add the names of your data files here
+
+            for (const file of dataFiles) {
+                const response = await fetch(datasetRepoUrl + file);
+                const data = await response.arrayBuffer();
+                const uint8Array = new Uint8Array(data);
+                localStorage.setItem(file, JSON.stringify([...uint8Array]));
+            }
+        }
+
+        // Call the function to fetch data files on page load
+        document.addEventListener('DOMContentLoaded', fetchDataFiles);
+
+        // Function to insert HTML table into the output div
+        function insertHTMLTable(htmlTable) {
+           const outputDiv = document.getElementById('output');
+           outputDiv.innerHTML = "";  //  Fully clear previous outputs
+           setTimeout(() => {
+               outputDiv.innerHTML = htmlTable;  // Ensure new table is inserted properly
+           }, 10); // Small delay to allow proper clearing
+        }
+
+        // Function to check for pandas-related keywords
+        function containsPandasKeywords(code) {
+            const keywords = ['pandas', 'dataframe', 'df'];
+            return keywords.some(keyword => code.toLowerCase().includes(keyword));
+        }
+    </script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+        }
+        .blurred {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+        .column {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .left-column {
+            width: 100%;
+        }
+        #notebook-select {
+            width: calc(50% - 100px);
+            padding: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            display: inline-block;
+            background-color: #c0eb34;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #load-button {
+            width: 80px;
+            padding: 12px;
+            margin-left: 10px;
+            display: inline-block;
+            background-color:  #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .jp-Cell {
+            margin: 20px 0;
+        }
+        .jp-CodeCell {
+            background-color: #e9e9e9; 
+            padding: 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .jp-CodeCell:hover {
+            background-color: #ffffff; 
+        }
+        .jp-CodeCell pre {
+            margin: 0;
+            overflow-x: auto;
+        }
+        .jp-CodeCell code {
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .jp-MarkdownCell {
+            padding: 10px;
+        }
+        .editor-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: auto;
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .editor-area, .output-area {
+            display: flex;
+            flex-direction: column;
+            margin-top: 10px;
+            overflow: auto;
+            resize: vertical;
+        }
+        #editor {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow: auto;
+            font-size: 16px;
+            min-height: 10em; /* Minimum height for 10 lines */
+        }
+        .buttons {
+            margin: 20px 0 10px 0; /* Added margin-top for spacing */
+        }
+        .button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            background-color: #c0eb34;
+            color: black;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #output {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            white-space: pre-wrap;
+            overflow: auto;
+            font-size: 16px;
+            max-height: 200px; /* Defines a maximum height for the output div */
+        }
+        #plot-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #ccc;
+            background: white;
+            z-index: 1000;
+            padding: 20px;
+        }
+        #plot-popup img {
+            max-width: 100%;
+        }
+        #close-plot-popup {
+            display: block;
+            margin: 10px auto 0;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .CodeMirror {
+            font-size: 16px;
+            height: auto;
+        }
+        .CodeMirror-scroll {
+            overflow: auto;
+        }
+        .hljs {
+            background: transparent;
+            padding: 0;
+        }
+        /* Styles for the input prompt modal */
+        .custom-prompt, .custom-output {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: white;
+            border: 1px solid black;
+            z-index: 1000;
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+        #back-to-top-button {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            z-index: 1001; /* Ensure the button is above other elements */
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.4/mode/python/python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.22.1/full/pyodide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.9.1/showdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/highlight.min.js"></script>
+    <script>
+        let pyodideReadyPromise;
+        let editor;
+        let inputCallback = null;
+
+        async function loadPyodideAndPackages() {
+            self.pyodide = await loadPyodide({
+                indexURL: "https://cdn.jsdelivr.net/pyodide/v0.22.1/full/"
+            });
+            await pyodide.loadPackage(['numpy', 'pandas', 'matplotlib', 'scipy', 'micropip']);
+            await pyodide.runPythonAsync(`
+                import micropip
+                await micropip.install('scikit-learn')
+                await micropip.install('seaborn')
+                await micropip.install('IPython')
+                await micropip.install('openpyxl')
+            `);
+            return pyodide;
+        }
+
+        pyodideReadyPromise = loadPyodideAndPackages();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await fetchDataFiles(); // Ensure data files are fetched before initializing the editor
+
+            editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+                mode: 'python',
+                lineNumbers: true,
+                theme: 'default',
+                fontSize: '16px'
+            });
+
+            editor.getWrapperElement().style.fontSize = '16px';
+            document.getElementById('load-button').addEventListener('click', loadNotebook);
+
+            // Show the "Back to Top" button when scrolling down
+            const backToTopButton = document.getElementById('back-to-top-button');
+            const mainContent = document.getElementById('main-content');
+            mainContent.addEventListener('scroll', () => {
+                if (mainContent.scrollTop > mainContent.clientHeight / 2) {
+                    backToTopButton.style.display = 'block';
+                } else {
+                    backToTopButton.style.display = 'none';
+                }
+            });
+        });
+
+        async function loadNotebook() {
+            const url = document.getElementById('notebook-select').value;
+            try {
+                const response = await fetch(url);
+                const notebookJson = await response.json();
+                const notebookHtml = convertNotebookToHtml(notebookJson);
+                document.getElementById('notebook-content').innerHTML = notebookHtml;
+                
+                // Apply syntax highlighting to all code blocks
+                document.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+
+                // Add click handlers to code cells
+                document.querySelectorAll('.jp-CodeCell').forEach((cell) => {
+                    cell.addEventListener('click', () => {
+                        openEditorPopup();
+                        let code = cell.querySelector('code').textContent;
+
+                        // Replace the placeholder with the actual data content
+                        if (code.includes("pd.read_csv('wine.data.csv')")) {
+                            const csvContent = JSON.parse(localStorage.getItem('wine.data.csv'));
+                            pyodide.FS.writeFile('wine.data.csv', new Uint8Array(csvContent));
+                        }
+
+                        editor.setValue(code);
+                        adjustEditorHeight();
+                    });
+                });
+            } catch (error) {
+                console.error('Error loading notebook:', error);
+            }
+        }
+
+        function convertNotebookToHtml(notebookJson) {
+            const cells = notebookJson.cells;
+            let htmlContent = '';
+
+            cells.forEach(cell => {
+                if (cell.cell_type === 'markdown') {
+                    const converter = new showdown.Converter();
+                    const html = converter.makeHtml(cell.source.join(''));
+                    htmlContent += `<div class="jp-Cell jp-MarkdownCell">${html}</div>`;
+                } else if (cell.cell_type === 'code') {
+                    const code = cell.source.join('');
+                    const highlightedCode = `<pre><code class="python">${code}</code></pre>`;
+                    htmlContent += `<div class="jp-Cell jp-CodeCell">${highlightedCode}</div>`;
+                }
+            });
+
+            return htmlContent;
+        }
+
+        function showPrompt(message) {
+            document.getElementById('promptMessage').innerText = message;
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('customPrompt').style.display = 'block';
+        }
+
+        function submitPrompt() {
+            const userInput = document.getElementById('userInput').value;
+            document.getElementById('userInput').value = ''; // Clear the input box
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('customPrompt').style.display = 'none';
+            if (inputCallback) {
+                inputCallback(userInput);
+            }
+        }
+
+        async function runCode() {
+            const editorContent = editor.getValue();
+            const inputRegex = /input\(["']([^"']*)["']\)/;
+
+            const match = editorContent.match(inputRegex);
+            if (match) {
+                const inputPrompt = match[1];
+                showPrompt(inputPrompt);
+                inputCallback = (userInput) => {
+                    runCodeWithInput(editorContent, userInput);
+                }
+                return;
+            }
+
+            runCodeWithInput(editorContent);
+        }
+
+        async function runCodeWithInput(editorContent, input = '') {
+            const shouldShowPlot = editorContent.includes('plt.show()');
+
+            try {
+                const pyodide = await pyodideReadyPromise;
+
+                pyodide.runPython(`
+import io, sys
+sys.stdout = io.StringIO()
+sys.stderr = io.StringIO()
+from io import StringIO
+                `);
+
+                if (input) {
+                    pyodide.globals.set("input", () => input);
+                }
+
+                // Clear the output div before displaying new output
+                const outputDiv = document.getElementById('output');
+                outputDiv.innerHTML = ''; // Ensure the output is cleared
+
+                const result = await pyodide.runPythonAsync(editorContent);
+                const output = pyodide.runPython('sys.stdout.getvalue()');
+                const errorOutput = pyodide.runPython('sys.stderr.getvalue()');
+
+                outputDiv.textContent = output + errorOutput;
+
+                // Check if the result is a DataFrame and display as HTML table
+                if (containsPandasKeywords(editorContent) && !editorContent.includes('.to_html()')) {
+                    const htmlOutput = await pyodide.runPythonAsync(`
+
+import pandas as pd
+
+# Ensure previous output is cleared before new execution
+html_tables = ""
+
+# Collect only the last DataFrame (keeping your existing logic)
+df_list = [var for name, var in globals().items() if isinstance(var, pd.DataFrame) and not name.startswith("df")]
+if df_list:
+    html_tables = df_list[-1].to_html()
+
+# Fix: Track processed objects to avoid duplicates
+
+processed_objects = set()
+
+for name, var in globals().items():
+    if id(var) in processed_objects:  
+        continue
+    processed_objects.add(id(var))
+
+    if isinstance(var, pd.Series):
+        html_tables += f"<pre>{var.to_string()}</pre>"
+    elif isinstance(var, (pd.Index, pd.MultiIndex)):
+        html_tables += f"<pre>Index: {var.to_list()}</pre>"
+    elif isinstance(var, (pd.Timestamp, pd.Timedelta, pd.Period, pd.Interval)):
+        html_tables += f"<pre>{str(var)}</pre>"
+    elif isinstance(var, pd.Categorical):
+        html_tables += f"<pre>Categories: {var.categories.to_list()}</pre>"
+    elif isinstance(var, (pd.Float64Index, pd.Int64Index, pd.UInt64Index, pd.RangeIndex)):
+        html_tables += f"<pre>Index: {var.to_list()}</pre>"
+    elif hasattr(pd.arrays, "PandasArray") and isinstance(var, pd.arrays.PandasArray):  
+        html_tables += f"<pre>{var.tolist()}</pre>"  # ✅ Fix for Pandas compatibility
+
+html_tables
+
+
+                    `);
+                     
+                     insertHTMLTable(htmlOutput);
+                }
+
+                pyodide.runPython('sys.stdout = sys.__stdout__');
+                pyodide.runPython('sys.stderr = sys.__stderr__');
+
+                if (shouldShowPlot) {
+                    const plotImg = await pyodide.runPythonAsync(`
+import matplotlib.pyplot as plt
+import io
+import base64
+
+def show_plot():
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode('utf-8')
+    buf.close()
+    plt.clf()
+    return img_str if plt.get_fignums() else ""
+
+show_plot()
+                    `);
+                    if (plotImg) {
+                        showPlotPopup('data:image/png;base64,' + plotImg);
+                    }
+                }
+            } catch (error) {
+                document.getElementById('output').textContent = error;
+            }
+        }
+
+        function clearEditor() {
+        editor.setValue('');
+        const outputDiv = document.getElementById('output');
+        while (outputDiv.firstChild) {
+            outputDiv.removeChild(outputDiv.firstChild); // Ensure full output clearing
+        }
+        setTimeout(() => {
+            while (outputDiv.firstChild) {
+                outputDiv.removeChild(outputDiv.firstChild); // Extra check to avoid residual content
+            }
+        }, 10);
+        localStorage.clear(); // Clear localStorage
+        sessionStorage.clear(); // Clear sessionStorage
+        closeEditorPopup();
+        }
+
+        function openEditorPopup() {
+            document.getElementById('editor-popup').style.display = 'block';
+            document.getElementById('main-content').classList.add('blurred');
+        }
+
+        function closeEditorPopup() {
+        document.getElementById('editor-popup').style.display = 'none';
+        document.getElementById('main-content').classList.remove('blurred');
+        const outputDiv = document.getElementById('output');
+        while (outputDiv.firstChild) {
+            outputDiv.removeChild(outputDiv.firstChild); // Clear all previous outputs
+        }
+        setTimeout(() => {
+            while (outputDiv.firstChild) {
+                outputDiv.removeChild(outputDiv.firstChild); // Extra check to remove residual content
+            }
+        }, 10);
+        localStorage.clear(); // Clear localStorage
+        sessionStorage.clear(); // Clear sessionStorage
+        }
+
+
+        function showPlotPopup(imageSrc) {
+            if (imageSrc) {
+                document.getElementById('plot-image').src = imageSrc;
+                document.getElementById('plot-popup').style.display = 'block';
+            }
+        }
+
+        function closePlotPopup() {
+            document.getElementById('plot-popup').style.display = 'none';
+        }
+
+        function adjustEditorHeight() {
+            const code = editor.getValue();
+            const lines = code.split('\n').length;
+            const height = Math.max(lines * 20, 200); // 20px per line, min height of 200px (10 lines)
+            editor.getWrapperElement().style.height = height + 'px';
+            editor.refresh();
+        }
+
+        function scrollToTop() {
+            const mainContent = document.getElementById('main-content');
+            mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</head>
+<body>
+    <div id="main-content" class="column left-column">
+        <h1>Complete PCEP-in-15 Days</h1>
+        <h2>Choose-Topic and " Click-on-Code "</h2>
+        <div> 
+            <select id="notebook-select">
+                <option value="https://atjlok.github.io/python/1234.ipynb">Day 1: Pandas-test</option>
+                <option value="https://atjlok.github.io/python/examples_notebook.ipynb">Day 2: Data Types and Variables</option>
+                <option value="https://atjlok.github.io/python/pandalive.ipynb">Day 3: Operators in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day4.ipynb">Day 4: Conditional Statements in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day5.ipynb">Day 5: Loops in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day6.ipynb">Day 6: Functions in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day7.ipynb">Day 7: Lists and Tuples in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day8.ipynb">Day 8: Dictionaries in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day9.ipynb">Day 9: Loops in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day10.ipynb">Day 10: Functions in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day11.ipynb">Day 11: Exception Handling in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day12.ipynb">Day 12: Modules and Packages in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day13.ipynb">Day 13: File Handling in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day14.ipynb">Day 14: Object-Oriented Programming (OOP) in Python</option>
+                <option value="https://atjlok.github.io/python/forweb/Day15.ipynb">Day 15: Python Libraries and Modules</option>
+            </select>
+            <button id="load-button">Load</button>
+        </div>
+        <div id="notebook-content"></div>
+    </div>
+
+    <div id="editor-popup" class="editor-popup">
+        <h2>Simpli-"py" Editor</h2>
+        <div class="editor-area">
+            <textarea id="editor" placeholder="Write your Python code here"></textarea>
+            <div class="buttons">
+                <button class="button" onclick="runCode()">Run Code</button>
+                <button class="button" onclick="clearEditor()">Close Editor</button>
+            </div>
+        </div>
+        <div class="output-area">
+            <h3>Output</h3>
+            <div id="output"></div>
+        </div>
+    </div>
+
+    <div id="plot-popup">
+        <img id="plot-image" src="" alt="Plot">
+        <button id="close-plot-popup" onclick="closePlotPopup()">Close</button>
+    </div>
+
+    <!-- Custom Input Prompt Modal -->
+    <div id="overlay" class="overlay"></div>
+    <div id="customPrompt" class="custom-prompt">
+        <p id="promptMessage">Enter a number:</p>
+        <input type="text" id="userInput">
+        <button onclick="submitPrompt()">Submit</button>
+    </div>
+    <div id="customOutput" class="custom-output">
+        <p id="outputMessage"></p>
+        <button onclick="closeOutput()">Close</button>
+    </div>
+
+    <button id="back-to-top-button" onclick="scrollToTop()">Back to Top</button>
+</body>
+</html>
