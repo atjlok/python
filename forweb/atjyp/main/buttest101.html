@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Learning Library</title>
+    <script>
+    // Disable right-click
+
+        document.addEventListener("contextmenu", function (event) {
+        event.preventDefault();
+       });
+
+        // Disable specific keys
+        document.addEventListener("keydown", function (event) {
+    
+        // Disable Ctrl+U
+      
+        if (event.ctrlKey && event.key === "u") {
+            event.preventDefault();
+        }
+
+        // Disable F12
+
+        if (event.key === "F12") {
+            event.preventDefault();
+        }
+
+        // Disable other shortcuts
+
+        if ((event.ctrlKey && (event.key === "x" || event.key === "c" || event.key === "v"))) {
+            event.preventDefault();
+        }
+    });
+  
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: url('https://professorspoint.in/wp-content/uploads/Prasun123.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 80vh;
+            text-align: center;
+            color: white;
+        }
+
+        /* Menu Styling */
+        .menu {
+           display: flex;
+           flex-wrap: wrap; /* Allows multiple rows */
+           justify-content: center;
+           gap: 15px;
+           margin-top: 20px;
+           max-width: 1800px; /* Prevents stretching */
+        }
+
+        .menu button {
+            background-color: rgba(139, 69, 19, 0.7);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 250px;
+            text-align: center;
+        }
+
+        .menu button:hover {
+            background-color: rgba(139, 69, 19, 0.9);
+        }
+
+        /* Title Styling */
+        .title {
+            background-color: rgba(139, 69, 19, 0.7);
+            font-family: "Brush Script MT", cursive;
+            font-size: 50px;
+            text-shadow: 2px 2px 5px black;
+            margin-bottom: 20px;
+        }
+
+        /* Back Button */
+        .back-button {
+            background-color: rgba(139, 69, 19, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            display: none; /* Initially hidden */
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background-color: rgba(139, 69, 19, 0.9);
+        }
+
+        /* Content Section */
+
+       .content {
+          width: 80%;
+          max-width: 1800px;
+          margin-top: 20px;
+          display: flex;
+          flex-direction: column; /* Stack heading & paragraph */
+          align-items: center;
+          gap: 20px;
+          padding: 20px;
+       }
+
+     .content-text {
+         background-color: rgba(0, 128, 255, 0.7); /* Background only for text */
+         padding: 20px;
+         border-radius: 10px;
+         text-align: center;
+         width: fit-content;
+         max-width: 80%;
+       }
+
+     .content-buttons {
+        display: flex;
+        flex-wrap: wrap; /* Ensure wrapping */
+        justify-content: center;
+        gap: 15px;
+      }
+
+    .content-buttons button {
+       background-color: rgba(139, 69, 19, 0.7);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 18px;
+            width: 250px;
+            text-align: center;
+     }
+
+    .content-buttons button:hover {
+       background-color: #0056b3;
+     }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Back Button -->
+    <button class="back-button" onclick="goBack()">Back</button>
+
+    <!-- Page Title -->
+    <h1 class="title">Prasun's Machine Learning Library...</h1>
+
+    <!-- Content Section -->
+    <div class="content-text" id="content">
+        <p>Welcome! Click on a menu option to explore.</p>
+    </div>
+
+    <!-- Menu Buttons -->
+    <div class="menu">
+        <button onclick="loadContent('python')">Python Basics</button>
+        <button onclick="loadContent('ml-tools')">ML Tools</button>
+        <button onclick="loadContent('ml-practice')">ML Practice</button>
+        <button onclick="loadContent('mit')">MIT - Lectures</button>
+      
+     </div>
+
+    <script>
+        function loadContent(section) {
+            let contentDiv = document.getElementById("content");
+            let backButton = document.querySelector(".back-button");
+            
+            // Content based on selection
+            let content = {
+                "python": `
+                    
+                    <h2>Python Basics</h2>
+                    <p>Here are some useful Python learning resources:</p>
+                    <div class="content-buttons">
+                    <button onclick="window.open('https://colab.research.google.com/drive/17OwfHKGGtJmTZxq8aOEWzm41t6Pwp2K3?usp=sharing', '_blank')">Python-Self-Tutor</button>
+                    <button onclick="window.open('https://colab.research.google.com/drive/1GvQgXTUf6Zz1XUmpdsU4KBkMcRav5ecf?usp=sharing', '_blank')">Python - Fundamentals</button>
+                    </div>
+                `,
+
+                "ml-tools": `
+                    <h2>Machine Learning Tools</h2>
+                    <p>Explore these ML tools:</p>
+                    <div class="content-buttons">
+                    <button onclick="window.open('https://colab.research.google.com/drive/1TpXqcXaiokH_YFhYkJN5B4EtunoFLbm2?usp=sharing', '_blank')">Numpy - Fundamentals</button>
+                    <button onclick="window.open('https://colab.research.google.com/drive/1Qqll18TswnTFlFZ2meIaoI-r2dmTXCyV?usp=sharing', '_blank')">Numpy - Practice</button>
+                    <button onclick="window.open('https://colab.research.google.com/drive/11COQmRK-A5Klokgrz51-mzftTdxZyiSg?usp=sharing', '_blank')">Pandas - Fundamentals</button>
+                    </div>
+                `,
+       
+                "ml-practice": `
+                    <h2>ML - Practice</h2>
+                    <p>Try out these ML practice exercises:</p>
+                    <div class="content-buttons">
+                    <button onclick="window.open('https://colab.research.google.com/drive/1jmewnK49p1JBgar46Mhss_hA0Q7AHp-r?usp=sharing', '_blank')">ML - Iris Dataset</button>
+                    </div>
+                  `,
+
+                 "mit": `
+                    <h2>2025-"MIT"- Deep Learning</h2>
+                    <p>The best lectures :</p>
+                    <div class="content-buttons">
+                    <button onclick="window.open('https://professorspoint.in/mit/', '_blank')">MIT - Lectures</button>
+                    </div>
+                  `,
+
+                 };
+
+            // Change the content and show the back button
+            contentDiv.innerHTML = content[section] || "<p>Content not available.</p>";
+            backButton.style.display = "block";
+
+            // Hide menu and title when viewing content
+            document.querySelector(".menu").style.display = "none";
+            document.querySelector(".title").style.display = "none";
+        }
+
+        function goBack() {
+            let contentDiv = document.getElementById("content");
+            let backButton = document.querySelector(".back-button");
+
+            // Reset to original state
+            contentDiv.innerHTML = "<p>Welcome! Click on a menu option to explore.</p>";
+            backButton.style.display = "none";
+
+            // Show menu and title again
+            document.querySelector(".menu").style.display = "flex";
+            document.querySelector(".title").style.display = "block";
+        }
+    </script>
+
+</body>
+</html>
